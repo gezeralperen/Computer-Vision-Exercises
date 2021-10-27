@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
+import os
+cwd = os.path.dirname(os.path.abspath(__file__))
+
 
 class center_points:
     def __init__(self, K, dims, range=(0,1)):
@@ -11,7 +14,7 @@ class center_points:
     def find_solution(self, data):
         i = 1
         while True:
-            labeled_data, inertia = self.find_nearest(data)
+            labeled_data = self.find_nearest(data)
             isChanged = False
             for K in range(self.centers.shape[0]):
                 cluster = labeled_data[:,-1]
@@ -27,9 +30,9 @@ class center_points:
             i += 1
             if not isChanged:
                 break
-        return labeled_data[:,-1], inertia
+        return labeled_data[:,-1]
 
-    def find_nearest(self,data):
+    def find_nearest(self, data):
         labeled_data = np.empty((0,data.shape[1]+1), dtype=int)
         inertia = 0
         for i in range(data.shape[0]):
@@ -37,22 +40,21 @@ class center_points:
             inertia += np.min(distances)/(65025*len(data))
             labeled_row = np.hstack((data[i], [np.argmin(distances)]))
             labeled_data = np.vstack((labeled_data, labeled_row))
-        return labeled_data, inertia
+        self.inertia = inertia
+        return labeled_data
+    
+    def convert_to_image(self, shape, clusters):
+        colors = self.centers[clusters]
+        return np.reshape(colors, shape)
 
 
-inertias = []
-Ks = []
+image = cv2.imread(cwd + '/cq1.jpeg')
+image = cv2.resize(image, (image.shape[1]//4, image.shape[0]//4))
 
-image = cv2.imread('test_image.jpg')
-image = cv2.resize(image, (50, 30))
-# image = cv2.resize(image, (200,120))
+K=8
+centers = center_points(K, 3, (0,255))
+classes = centers.find_solution(image.reshape(-1,3))
+quintized_image = centers.convert_to_image(image.shape, classes)
 
-for K in range(3,20):
-    print(f"K = {K}")
-    centers = center_points(K, 3, (0,255))
-    classes, inertia = centers.find_solution(image.reshape(-1,3))
-    inertias.append(inertia)
-    Ks.append(K)
-
-plt.plot(Ks, inertias)
-plt.show()
+cv2.imshow('frame', quintized_image.astype(np.uint8))
+cv2.waitKey()
