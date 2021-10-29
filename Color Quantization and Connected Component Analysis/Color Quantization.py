@@ -4,16 +4,28 @@ from sklearn.cluster import KMeans
 from picker import color_picker
 
 import os
-cwd = os.path.dirname(os.path.realpath(__file__))
+file_path = os.path.dirname(os.path.realpath(__file__))
 
-############### HYPERPARAMETERS ###################
+############################### HYPERPARAMETERS ##############################
 
-USE_SKLEARN = True
-PICKER = True
+# Uses SKLearn insted of my method. Used for verification.
+USE_SKLEARN = False
+
+# Use picker to determine initial cluster centers.
+PICKER = False
+
+# Resize images to fit in a rectangle.
 IMAGE_SIZE = (400, 200)
-IMAGE_QUERY = ['cq1.jpeg', 'cq2.jpeg', 'cq3.jpeg']
 
-###################################################
+# Images to be processed.
+IMAGE_QUERY = [file_path + '/cq1.jpeg',
+               file_path + '/cq2.jpeg',
+               file_path + '/cq3.jpeg']
+
+# Output file
+OUTPUT_IMAGE = file_path + '/results.jpeg'
+
+###############################################################################
 
 
 def convert_to_image(shape, clusters, centers):
@@ -21,40 +33,35 @@ def convert_to_image(shape, clusters, centers):
     img = np.reshape(colors, shape)
     return cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_LAB2BGR)
 
-def find_nearest(cluster_centers, data, len, dim, Ks):
-    labeled_data = np.empty((0,dim+1), dtype=int)
-    for i in range(len):
-        distances = [np.square(data[i]-cluster_centers[K]).sum() for K in range(Ks)]
-        labeled_row = np.hstack((data[i], [np.argmin(distances)]))
-        labeled_data = np.vstack((labeled_data, labeled_row))
-    return labeled_data
+def find_nearest(cluster_centers, data):
+    label = np.empty((data.shape[0],), dtype=int)
+    for i in range(data.shape[0]):
+        distances = [np.square(data[i]-cluster_centers[K]).sum() for K in range(cluster_centers.shape[0])]
+        label[i] = np.argmin(distances)
+    return label
 
 class custom_kmeans:
     def __init__(self, K, dims, range=(0,1)):
         self.cluster_centers_ = np.random.random((K, dims), )* (range[1]-range[0]) +range[0]
-        self.cluster_centers_ = self.cluster_centers_.astype(np.uint8)
-        self.labels_ = []
 
     def fit(self, data):
-        i = 1
         while True:
-            labeled_data = find_nearest(self.cluster_centers_, data, data.shape[0], data.shape[1], self.cluster_centers_.shape[0])
+            label = find_nearest(self.cluster_centers_, data)
             isChanged = False
             for K in range(self.cluster_centers_.shape[0]):
-                cluster = labeled_data[:,-1]
-                cluster = np.where(cluster == K)
+                cluster = np.where(label == K)
                 if cluster[0].shape[0]<1:
                     self.cluster_centers_[K] = data[np.random.randint(0, data.shape[0])]
                     continue
-                cluster = labeled_data[cluster]
-                new_point = cluster[:,:-1].mean(axis=0).astype(np.uint8)
+                cluster = data[cluster]
+                new_point = cluster.mean(axis=0)
                 if not np.allclose(self.cluster_centers_[K],new_point, atol=10):
                     self.cluster_centers_[K] = new_point
                     isChanged = True
-            i += 1
             if not isChanged:
                 break
-        self.labels_ = labeled_data[:,-1]
+            self.labels_ = label
+        self.cluster_centers_ = self.cluster_centers_.astype(np.uint8)
         return self
 
 
@@ -69,7 +76,7 @@ if __name__ == '__main__':
     if USE_SKLEARN:
         for file in IMAGE_QUERY:
             print(f'Processing {file}')
-            image = cv2.imread(cwd + '/' + file)
+            image = cv2.imread(file)
             image = cv2.resize(image, (width, heigth))
             image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
             row = np.empty((heigth,0,3), dtype=np.uint8)
@@ -85,7 +92,7 @@ if __name__ == '__main__':
     else:
         for file in IMAGE_QUERY:
             print(f'Processing {file}')
-            image = cv2.imread(cwd + '/' + file)
+            image = cv2.imread(file)
             image = cv2.resize(image, (width, heigth))
             image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
             row = np.empty((heigth,0,3), dtype=np.uint8)
@@ -100,4 +107,4 @@ if __name__ == '__main__':
             results = np.vstack((results, row))
 
 
-    cv2.imwrite('results.jpeg', results)
+    cv2.imwrite(OUTPUT_IMAGE, results)
