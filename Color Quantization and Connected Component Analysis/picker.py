@@ -10,4 +10,4 @@ def color_picker(im, K):
     colors = []
     for point in points:
         colors.append(im[int(point[1]),int(point[0])])
-    return np.array(colors,dtype=np.uint8)
+    return np.array(colors, dtype=np.float32)
