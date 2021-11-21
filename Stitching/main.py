@@ -9,15 +9,25 @@ import os
 file_path = os.path.dirname(os.path.realpath(__file__))
 np.set_printoptions(suppress=True)
 
-im2Points, im1Points = get_points('north_campus', 'middle', 'left-1')
-h = computeH(im1Points, im2Points)
 
 
-image = cv2.imread(file_path + '/data/north_campus/middle.jpg')
-image2 = cv2.imread(file_path + '/data/north_campus/left-1.jpg')
+# Left addition
+base_image = cv2.imread(file_path + '/data/north_campus/middle.jpg')
+addition_image = cv2.imread(file_path + '/data/north_campus/left-1.jpg')
+base, addition = get_points('north_campus', 'middle', 'left-1')
+h = computeH(addition, base)
+image_dist, coord = warp(addition_image, h)
+left_image, origin = merge(base_image, image_dist, coord)
 
-image_dist, coord = warp(image2, h)
 
-cv2.imshow('Frame', merge(image, image_dist, coord))
+# Right addition
+base_image = cv2.imread(file_path + '/data/north_campus/middle.jpg')
+addition_image = cv2.imread(file_path + '/data/north_campus/right-1.jpg')
+addition, base = get_points('north_campus', 'middle', 'right-1')
+h = computeH(addition, base)
+image_dist, coord = warp(addition_image, h)
+merged_image, origin = merge(left_image, image_dist, coord, origin)
 
+
+cv2.imshow('Right', merged_image)
 cv2.waitKey()
