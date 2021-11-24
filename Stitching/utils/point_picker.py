@@ -49,7 +49,7 @@ def point_matcher(image1, image2):
             
         if counter == 12:
             point_matrix[:,2] -= image1.shape[1]
-            str = ",\n".join([f"(({x[0]}, {x[1]}), ({x[2]},{x[3]}))" for x in point_matrix])
+            str = "[" + ",\n".join([f"(({x[0]}, {x[1]}), ({x[2]},{x[3]}))" for x in point_matrix]) + "]" 
             print(str)
             break
         
