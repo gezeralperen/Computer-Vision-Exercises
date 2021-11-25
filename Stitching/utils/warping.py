@@ -1,7 +1,9 @@
 import numpy as np
+from numba import jit
 
-def warp(image, H):
+def warp(image, H, add_origin=(0,0)):
     
+    @jit(nopython=True)
     def get_points(m, x, y):
         return (m[0,0]*x+m[0,1]*y+m[0,2])/(m[2,0]*x+m[2,1]*y+m[2,2]), (m[1,0]*x+m[1,1]*y+m[1,2])/(m[2,0]*x+m[2,1]*y+m[2,2])
     
@@ -11,21 +13,16 @@ def warp(image, H):
         except IndexError:
             return np.array([0,0,0])
     
-    ymax = image.shape[0]
-    xmax = image.shape[1]
-    
-    # corners = np.array([
-    #     np.matmul(H,np.array([xmax,ymax,1])),
-    #     np.matmul(H,np.array([0,ymax,1])),
-    #     np.matmul(H,np.array([xmax,0,1])),
-    #     np.matmul(H,np.array([0,0,1])),
-    # ], dtype=int)
+    ymax = image.shape[0]-add_origin[0]
+    xmax = image.shape[1]-add_origin[1]
+    ymin = -add_origin[0]
+    xmin = -add_origin[1]
     
     corners = np.array([
         get_points(H, xmax, ymax),
-        get_points(H, 0, ymax),
-        get_points(H, xmax, 0),
-        get_points(H, 0, 0),
+        get_points(H, xmin, ymax),
+        get_points(H, xmax, ymin),
+        get_points(H, xmin, ymin),
     ], dtype=int)
     
     ymax_out = np.max(corners[:,1])
@@ -44,7 +41,7 @@ def warp(image, H):
     for y in range(ymin_out, ymax_out):
         for x in range(xmin_out, xmax_out):
             p_src = get_points(hinv, x, y)
-            if p_src[0] < xmax and  p_src[0] > 0 and p_src[1] < ymax and  p_src[1] > 0:
+            if p_src[0] < xmax and  p_src[0] > xmin and p_src[1] < ymax and  p_src[1] > ymin:
                 
                 ## LINEAR INTERPOLATION ##
                 # x_left = np.floor(p_src[0]).astype(int) 
@@ -65,7 +62,7 @@ def warp(image, H):
 
                 ### NEAREST NEIGHBOR ####
                 nearest = np.round(p_src).astype(int)
-                canvas[y-ymin_out,x-xmin_out] = image[nearest[1]-1, nearest[0]-1]
+                canvas[y-ymin_out,x-xmin_out] = image[nearest[1]-1-ymin, nearest[0]-1-xmin]
                 #########################
                 
     return canvas, (xmin_out, xmax_out, ymin_out, ymax_out)

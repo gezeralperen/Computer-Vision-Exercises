@@ -17,7 +17,7 @@ def merge(img1, img2, img2_coordinates, origin=(0,0)):
     # Check for right overflow
     if xmax < img2_coordinates[1]+origin[1]:
         xmax = img2_coordinates[1]+origin[1]
-        start = img2.shape[1]+origin[1]
+        start = img1.shape[1]+origin[1]
         end = img2_coordinates[0]+origin[1]
     
     # Check for top overflow
